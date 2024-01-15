@@ -1,0 +1,108 @@
+
+
+1. Project Setup:
+
+    initialize it with npm init -y.
+    Install required dependencies:
+
+Bash
+
+npm install googleapis @google-cloud/local-auth
+
+Use code with caution. Learn more
+
+
+
+2. Authentication:
+
+    Function to authenticate with Gmail using OAuth:
+
+JavaScript
+
+const { google } = require('googleapis');
+const auth = new google.auth.GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.modify'],
+  clientOptions: {
+    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+    clientSecret: 'YOUR_CLIENT_SECRET',
+  },
+});
+
+const authenticate = async () => {
+  try {
+    const authClient = await auth.getClient();
+    return authClient;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    process.exit(1);
+  }
+};
+
+
+
+3.  Function to fetch, process, and respond to emails:
+
+JavaScript
+
+const gmail = google.gmail({ version: 'v1', auth });
+
+const processEmails = async () => {
+  try {
+    const threads = await gmail.users.threads.list({
+      userId: 'me',
+      labelIds: ['INBOX'],
+    });
+
+    
+    for (const thread of threads.data.threads) {
+      const messages = await gmail.users.threads.get({
+        userId: 'me',
+        id: thread.id,
+      });
+
+      // Check for new, unreplied emails
+      for (const message of messages.data.messages) {
+        if (!message.payload.headers.find((header) => header.name === 'From' && header.value === 'me')) {
+          //  reply
+          await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+              threadId: thread.id,
+              message: {
+                subject: 'Out of Office Reply',
+                body: {
+                  content: 'I am currently out of the office and will respond to your email when I return.',
+                },
+              },
+            },
+          });
+
+          
+          await gmail.users.messages.modify({
+            userId: 'me',
+            id: message.id,
+            requestBody: {
+              addLabelIds: ['Auto Replied'],
+              removeLabelIds: ['INBOX'],
+            },
+          });
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Error processing emails:', error);
+  }
+};
+
+
+
+4. Repeating Task:
+
+     setInterval loop to execute processEmails at random intervals:
+
+JavaScript
+
+const intervalId = setInterval(async () => {
+  await processEmails();
+}, getRandomInterval());
