@@ -1,0 +1,3 @@
+const intervalId = setInterval(async () => {
+  await processEmails();
+}, getRandomInterval());
