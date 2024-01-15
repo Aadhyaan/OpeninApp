@@ -1,0 +1,50 @@
+const gmail = google.gmail({ version: 'v1', auth });
+
+const processEmails = async () => {
+  try {
+    const threads = await gmail.users.threads.list({
+      userId: 'me',
+      labelIds: ['INBOX'],
+    });
+
+    // Process each thread
+    for (const thread of threads.data.threads) {
+      const messages = await gmail.users.threads.get({
+        userId: 'me',
+        id: thread.id,
+      });
+
+      // Check for new, unreplied emails
+      for (const message of messages.data.messages) {
+        if (!message.payload.headers.find((header) => header.name === 'From' && header.value === 'me')) {
+          // Send reply
+          await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+              threadId: thread.id,
+              message: {
+                subject: 'Out of Office Reply',
+                body: {
+                  content: 'I am currently out of the office and will respond to your email when I return.',
+                },
+              },
+            },
+          });
+
+          // Add label and move email
+          await gmail.users.messages.modify({
+            userId: 'me',
+            id: message.id,
+            requestBody: {
+              addLabelIds: ['Auto Replied'],
+              removeLabelIds: ['INBOX'],
+            },
+          });
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Error processing emails:', error);
+  }
+};
