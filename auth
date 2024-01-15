@@ -1,0 +1,18 @@
+const { google } = require('googleapis');
+const auth = new google.auth.GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.modify'],
+  clientOptions: {
+    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+    clientSecret: 'YOUR_CLIENT_SECRET',
+  },
+});
+
+const authenticate = async () => {
+  try {
+    const authClient = await auth.getClient();
+    return authClient;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    process.exit(1);
+  }
+};
